@@ -17,7 +17,7 @@ public class BasketState(
     private HashSet<BasketStateChangedSubscription> _changeSubscriptions = new();
 
     private static readonly Meter BasketMeter = new Meter("eShop.WebApp");
-    private static readonly UpDownCounter<int> ItemQuantityCounter = BasketMeter.CreateUpDownCounter<int>("eshop.basket.item.count");
+    private static readonly UpDownCounter<int> ItemQuantityCounter = BasketMeter.CreateUpDownCounter<int>("eshop.basket.items.total");
 
     public Task DeleteBasketAsync()
         => basketService.DeleteBasketAsync();
@@ -57,7 +57,7 @@ public class BasketState(
         _cachedBasket = null;
         await basketService.UpdateBasketAsync(items);
 
-        ItemQuantityCounter.Add(1);
+        ItemQuantityCounter.Add(1, new KeyValuePair<string, object?>("product", item.Name));
 
         await NotifyChangeSubscribersAsync();
     }
@@ -67,6 +67,8 @@ public class BasketState(
         var existingItems = (await FetchBasketItemsAsync()).ToList();
         if (existingItems.FirstOrDefault(row => row.ProductId == productId) is { } row)
         {
+            var delta = quantity - row.Quantity;
+
             if (quantity > 0)
             {
                 row.Quantity = quantity;
@@ -79,8 +81,7 @@ public class BasketState(
             _cachedBasket = null;
             await basketService.UpdateBasketAsync(existingItems.Select(i => new BasketQuantity(i.ProductId, i.Quantity)).ToList());
 
-            var delta = quantity - row.Quantity;
-            ItemQuantityCounter.Add(delta);
+            ItemQuantityCounter.Add(delta, new KeyValuePair<string, object?>("product", row.ProductName));
 
             await NotifyChangeSubscribersAsync();
         }
