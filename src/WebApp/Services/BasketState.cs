@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Diagnostics.Metrics;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using eShop.WebAppComponents.Catalog;
@@ -14,6 +15,9 @@ public class BasketState(
 {
     private Task<IReadOnlyCollection<BasketItem>>? _cachedBasket;
     private HashSet<BasketStateChangedSubscription> _changeSubscriptions = new();
+
+    private static readonly Meter BasketMeter = new Meter("eShop.WebApp");
+    private static readonly UpDownCounter<int> ItemQuantityCounter = BasketMeter.CreateUpDownCounter<int>("eshop.basket.item.count");
 
     public Task DeleteBasketAsync()
         => basketService.DeleteBasketAsync();
@@ -52,6 +56,9 @@ public class BasketState(
 
         _cachedBasket = null;
         await basketService.UpdateBasketAsync(items);
+
+        ItemQuantityCounter.Add(1);
+
         await NotifyChangeSubscribersAsync();
     }
 
@@ -71,6 +78,10 @@ public class BasketState(
 
             _cachedBasket = null;
             await basketService.UpdateBasketAsync(existingItems.Select(i => new BasketQuantity(i.ProductId, i.Quantity)).ToList());
+
+            var delta = quantity - row.Quantity;
+            ItemQuantityCounter.Add(delta);
+
             await NotifyChangeSubscribersAsync();
         }
     }

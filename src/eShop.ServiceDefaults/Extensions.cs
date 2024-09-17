@@ -67,6 +67,7 @@ public static partial class Extensions
 
                 // Configure Semantic Kernel telemetry
                 metrics.AddMeter("Microsoft.SemanticKernel*");
+                metrics.AddMeter("eShop.WebApp");
             })
             .WithTracing(tracing =>
             {
