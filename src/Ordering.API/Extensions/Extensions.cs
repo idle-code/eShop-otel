@@ -3,7 +3,7 @@
     public static void AddApplicationServices(this IHostApplicationBuilder builder)
     {
         var services = builder.Services;
-        
+
         // Add the authentication services to DI
         builder.AddDefaultAuthentication();
 
@@ -34,6 +34,7 @@
         {
             cfg.RegisterServicesFromAssemblyContaining(typeof(Program));
 
+            cfg.AddOpenBehavior(typeof(OtelSpanBehavior<,>));
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidatorBehavior<,>));
             cfg.AddOpenBehavior(typeof(TransactionBehavior<,>));
